@@ -23,12 +23,15 @@ public class RoundMessage {
     private String roundName;
     @Column(name = "round_result")
     private int roundResult;
+    @Column(name = "iteration")
+    private int iteration;
     @ManyToOne(targetEntity = Session.class, fetch = FetchType.EAGER)
     private Session session;
 
-    public RoundMessage(String roundName, int roundResult, Session session) {
+    public RoundMessage(String roundName, int roundResult, Session session, int roundIteration) {
         this.roundName = roundName;
         this.roundResult = roundResult;
         this.session = session;
+        this.iteration = roundIteration;
     }
 }

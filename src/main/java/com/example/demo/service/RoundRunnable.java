@@ -24,7 +24,8 @@ public class RoundRunnable implements Runnable {
 
     private final Config config;
     private final DemoService demoService;
-    private int roundCounter = 0;
+    private Integer iteration = 0;
+    private ThreadLocal<Integer> roundCounter = ThreadLocal.withInitial(() -> iteration);
     private Random random = new Random();
 
     /**
@@ -56,13 +57,13 @@ public class RoundRunnable implements Runnable {
             System.out.println("Session count " + sessionsThreadLocal.get().size());
             // double loop for sessions to send a message to each session in the current thread
             sessionsThreadLocal.get().forEach(session -> {
-                RoundMessage message = createRoundMessage(roundResult, session.getId());
+                RoundMessage message = createRoundMessage(roundResult, session.getId(), roundCounter.get());
                 sendMessage(session.getEmitter(), message);
                 sessionsThreadLocal.get()
                         .stream()
                         .filter(s -> !s.getId().equals(session.getId()))
                         .forEach(session1 -> {
-                            RoundMessage innerMessage = createRoundMessage(roundResult, session.getId());
+                            RoundMessage innerMessage = createRoundMessage(roundResult, session.getId(), roundCounter.get());
                             sendMessage(session1.getEmitter(), innerMessage);
                         });
             });
@@ -71,7 +72,7 @@ public class RoundRunnable implements Runnable {
             } catch (InterruptedException e) {
                 System.out.println("Round #" + Thread.currentThread().getName() + ". Next iteration " + roundCounter);
             }
-            roundCounter++;
+            roundCounter.set(roundCounter.get() + 1);
         }
     }
 
@@ -113,9 +114,10 @@ public class RoundRunnable implements Runnable {
      *
      * @param roundResult
      * @param sessionId
+     * @param roundIteration
      * @return
      */
-    private RoundMessage createRoundMessage(int roundResult, Long sessionId) {
-        return demoService.createMessage(Thread.currentThread().getName(), sessionId, roundResult);
+    private RoundMessage createRoundMessage(int roundResult, Long sessionId, int roundIteration) {
+        return demoService.createMessage(Thread.currentThread().getName(), sessionId, roundResult, roundIteration);
     }
 }

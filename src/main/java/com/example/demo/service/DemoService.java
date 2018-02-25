@@ -38,9 +38,9 @@ public class DemoService {
         return messageRepository.save(message);
     }
 
-    public RoundMessage createMessage(String roundName, Long sessionId, int roundResult) {
+    public RoundMessage createMessage(String roundName, Long sessionId, int roundResult, int roundIteration) {
         Session one = sessionRepository.findOne(sessionId);
-        RoundMessage message = new RoundMessage(roundName, roundResult, one);
+        RoundMessage message = new RoundMessage(roundName, roundResult, one, roundIteration);
         return messageRepository.save(message);
     }
 }
