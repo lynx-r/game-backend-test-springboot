@@ -26,7 +26,8 @@ public class JoinController {
         this.demoService = demoService;
         // Initialize rounds-threads
         new Thread(() -> {
-            for (int i = 0; i < config.getMaxRounds(); i++) {
+            int i = 0;
+            while (i < config.getMaxRounds() || config.getMaxRounds() == 0) {
                 currentRound = factory.createBean(RoundRunnable.class);
                 Thread thread = new Thread(currentRound);
                 thread.setName("Round-" + i);
@@ -36,6 +37,7 @@ public class JoinController {
                 } catch (InterruptedException e) {
                     System.out.println("New round");
                 }
+                i++;
             }
         }).start();
     }

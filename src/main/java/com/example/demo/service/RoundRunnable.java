@@ -54,13 +54,17 @@ public class RoundRunnable implements Runnable {
                 });
             }
             System.out.println("Session count " + sessionsThreadLocal.get().size());
+            // double loop for sessions to send a message to each session in the current thread
             sessionsThreadLocal.get().forEach(session -> {
                 RoundMessage message = createRoundMessage(roundResult, session.getId());
                 sendMessage(session.getEmitter(), message);
-                sessionsThreadLocal.get().stream().filter(s -> !s.getId().equals(session.getId())).forEach(session1 -> {
-                    RoundMessage innerMessage = createRoundMessage(roundResult, session.getId());
-                    sendMessage(session1.getEmitter(), innerMessage);
-                });
+                sessionsThreadLocal.get()
+                        .stream()
+                        .filter(s -> !s.getId().equals(session.getId()))
+                        .forEach(session1 -> {
+                            RoundMessage innerMessage = createRoundMessage(roundResult, session.getId());
+                            sendMessage(session1.getEmitter(), innerMessage);
+                        });
             });
             try {
                 TimeUnit.SECONDS.sleep(config.getNextRoundSeconds());
@@ -73,11 +77,15 @@ public class RoundRunnable implements Runnable {
 
     /**
      * Add session to the local thread and create an emitter which will send messages to clients
+     *
      * @param session
      * @return
      */
     public SseEmitter addSession(Session session) {
-        Optional<Session> sessionOpt = sessionsThreadLocal.get().stream().filter(s -> s.getId().equals(session.getId())).findFirst();
+        Optional<Session> sessionOpt = sessionsThreadLocal.get()
+                .stream()
+                .filter(s -> s.getId().equals(session.getId()))
+                .findFirst();
         if (sessionOpt.isPresent()) {
             return sessionOpt.get().getEmitter();
         }
@@ -87,6 +95,7 @@ public class RoundRunnable implements Runnable {
 
     /**
      * Send a message over SSE
+     *
      * @param emitter
      * @param message
      */
@@ -101,6 +110,7 @@ public class RoundRunnable implements Runnable {
 
     /**
      * Form a message to be sent
+     *
      * @param roundResult
      * @param sessionId
      * @return
