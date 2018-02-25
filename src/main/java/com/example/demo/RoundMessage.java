@@ -11,6 +11,7 @@ import lombok.Data;
 public class RoundMessage {
 
     private String roundName;
+    private int sessionId;
     private int roundResult;
     private int balance;
 }

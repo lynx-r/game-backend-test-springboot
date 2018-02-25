@@ -35,8 +35,6 @@ public class JoinController {
 
     @GetMapping("/join")
     public SseEmitter join(@RequestParam("client_id") Integer clientId, @RequestParam("balance") Integer balance) {
-        Session session = new Session(clientId, balance - 1);
-        currentRound.addSession(session);
-        return currentRound.getEmitterThreadLocal().get();
+        return currentRound.addSession(clientId, balance - 1);
     }
 }

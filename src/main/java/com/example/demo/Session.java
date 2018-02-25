@@ -12,4 +12,5 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public class Session {
     private int id;
     private int balance;
+    private SseEmitter emitter;
 }

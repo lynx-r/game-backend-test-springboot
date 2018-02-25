@@ -6,6 +6,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -22,15 +23,11 @@ public class Round implements Runnable {
 
     @Getter
     private ThreadLocal<Set<Session>> sessionsThreadLocal;
-    @Getter
-    private ThreadLocal<SseEmitter> emitterThreadLocal;
 
     private Set<Session> sessions = new HashSet<>();
-    private SseEmitter emitter = new SseEmitter();
 
     public Round(Config config) {
         sessionsThreadLocal = ThreadLocal.withInitial(() -> sessions);
-        emitterThreadLocal = ThreadLocal.withInitial(() -> emitter);
         this.config = config;
     }
 
@@ -45,14 +42,25 @@ public class Round implements Runnable {
                     session.setBalance(session.getBalance() + config.getIncWinBalance());
                 });
             }
+            System.out.println("Session count " + sessionsThreadLocal.get().size());
             sessionsThreadLocal.get().forEach(session -> {
+                RoundMessage message = getRoundMessage(roundResult, session);
                 try {
-                    RoundMessage message = new RoundMessage(Thread.currentThread().getName(), roundResult, session.getBalance());
-                    emitter.send(message, MediaType.APPLICATION_JSON);
+                    session.getEmitter().send(message, MediaType.APPLICATION_JSON);
                 } catch (IOException e) {
                     e.printStackTrace();
-                    emitter.complete();
+                    session.getEmitter().complete();
                 }
+                sessionsThreadLocal.get().stream().filter(s -> s.getId() != session.getId()).forEach(session1 -> {
+                    RoundMessage innerMessage = getRoundMessage(roundResult, session1);
+                    try {
+                        System.out.println(innerMessage);
+                        session.getEmitter().send(innerMessage, MediaType.APPLICATION_JSON);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        session.getEmitter().complete();
+                    }
+                });
             });
             try {
                 TimeUnit.SECONDS.sleep(config.getNextRoundSeconds());
@@ -63,7 +71,18 @@ public class Round implements Runnable {
         }
     }
 
-    public void addSession(Session session) {
+    private RoundMessage getRoundMessage(int roundResult, Session session) {
+        return new RoundMessage(Thread.currentThread().getName(),
+                session.getId(), roundResult, session.getBalance());
+    }
+
+    public SseEmitter addSession(int clientId, int balance) {
+        Optional<Session> sessionOpt = sessionsThreadLocal.get().stream().filter(s -> s.getId() == clientId).findFirst();
+        if (sessionOpt.isPresent()) {
+            return sessionOpt.get().getEmitter();
+        }
+        Session session = new Session(clientId, balance, new SseEmitter(Long.MAX_VALUE));
         sessionsThreadLocal.get().add(session);
+        return session.getEmitter();
     }
 }
