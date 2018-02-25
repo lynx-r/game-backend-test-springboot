@@ -11,7 +11,7 @@ import javax.persistence.*;
 import java.util.List;
 
 /**
- * Created by Aleksey P. on 25/02/2018.
+ * Created by Aleksey Popryadukhin on 25/02/2018.
  */
 @NoArgsConstructor
 @Getter

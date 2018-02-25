@@ -10,7 +10,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import javax.inject.Inject;
 
 /**
- * Created by Aleksey P. on 25/02/2018.
+ * Created by Aleksey Popryadukhin on 25/02/2018.
  */
 @Service
 public class DemoService {

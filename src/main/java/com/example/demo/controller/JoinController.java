@@ -13,7 +13,7 @@ import javax.inject.Inject;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Created by Aleksey P. on 25/02/2018.
+ * Created by Aleksey Popryadukhin on 25/02/2018.
  */
 @RestController
 public class JoinController {
