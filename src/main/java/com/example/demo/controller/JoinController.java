@@ -1,5 +1,9 @@
-package com.example.demo;
+package com.example.demo.controller;
 
+import com.example.demo.service.RoundRunnable;
+import com.example.demo.config.Config;
+import com.example.demo.service.DemoService;
+import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,13 +18,16 @@ import java.util.concurrent.TimeUnit;
 @RestController
 public class JoinController {
 
-    private Round currentRound;
+    private DemoService demoService;
+    private RoundRunnable currentRound;
 
     @Inject
-    public JoinController(Config config) {
+    public JoinController(DemoService demoService, Config config, AutowireCapableBeanFactory factory) {
+        this.demoService = demoService;
+        // Initialize rounds-threads
         new Thread(() -> {
             for (int i = 0; i < config.getMaxRounds(); i++) {
-                currentRound = new Round(config);
+                currentRound = factory.createBean(RoundRunnable.class);
                 Thread thread = new Thread(currentRound);
                 thread.setName("Round-" + i);
                 thread.start();
@@ -34,7 +41,7 @@ public class JoinController {
     }
 
     @GetMapping("/join")
-    public SseEmitter join(@RequestParam("client_id") Integer clientId, @RequestParam("balance") Integer balance) {
-        return currentRound.addSession(clientId, balance - 1);
+    public SseEmitter join(@RequestParam("balance") Integer balance) {
+        return demoService.joinWithBalance(currentRound, balance);
     }
 }
