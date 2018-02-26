@@ -20,10 +20,10 @@ import java.util.concurrent.TimeUnit;
  * Created by Aleksey Popryadukhin on 25/02/2018.
  */
 @Component
-public class RoundRunnable implements Runnable {
+public class RoundThread extends Thread {
 
     private final Config config;
-    private final DemoService demoService;
+    private final RoundService roundService;
     private Integer iteration = 0;
     private ThreadLocal<Integer> roundCounter = ThreadLocal.withInitial(() -> iteration);
     private Random random = new Random();
@@ -36,10 +36,10 @@ public class RoundRunnable implements Runnable {
     private ThreadLocal<Set<Session>> sessionsThreadLocal;
 
     @Inject
-    RoundRunnable(DemoService demoService, Config config) {
+    RoundThread(RoundService roundService, Config config) {
         sessionsThreadLocal = ThreadLocal.withInitial(() -> sessions);
         this.config = config;
-        this.demoService = demoService;
+        this.roundService = roundService;
     }
 
     @Override
@@ -51,7 +51,7 @@ public class RoundRunnable implements Runnable {
                 sessionsThreadLocal.get().forEach(session -> {
                     System.out.println("Win " + Thread.currentThread().getName() + " Session " + session.getId() + ", increased balance to " + session.getBalance());
                     session.setBalance(session.getBalance() + config.getIncWinBalance());
-                    demoService.saveSession(session);
+                    roundService.saveSession(session);
                 });
             }
             System.out.println("Session count " + sessionsThreadLocal.get().size());
@@ -118,6 +118,6 @@ public class RoundRunnable implements Runnable {
      * @return
      */
     private RoundMessage createRoundMessage(int roundResult, Long sessionId, int roundIteration) {
-        return demoService.createMessage(Thread.currentThread().getName(), sessionId, roundResult, roundIteration);
+        return roundService.createMessage(Thread.currentThread().getName(), sessionId, roundResult, roundIteration);
     }
 }
