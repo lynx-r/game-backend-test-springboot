@@ -9,9 +9,9 @@
     else 0 - none
 
 It is required to store accounts, values and ids of rounds in MySQL,
-and to inform a client over SSE about changing of the account and the last thrown digit which is the round result.
+and to inform a client over SSE about changing of the account and the last thrown digit.
 
-#
+# Russian
 
 сделать backend (spring-boot) для игры:
 
