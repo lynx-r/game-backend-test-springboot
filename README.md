@@ -25,3 +25,8 @@ and to inform a client over SSE about changing of the account and the last throw
 
 балансы необходимо хранить в mysql, значения и номера раундов - тоже, а об изменениях балансов и 
 последнем выброшенном случайном числе - информировать сессии через EventSource (SSE).
+
+#
+
+В этой ветке сессия сохраняется в объекте в spring-session. В ветке store-session-as-object-without-spring 
+сессии сохряняются как сущности в базе данных.
