@@ -1,8 +1,8 @@
 package com.example.demo.service;
 
-import com.example.demo.config.Config;
+import com.example.demo.config.AppProperties;
 import com.example.demo.domain.RoundMessage;
-import com.example.demo.domain.Session;
+import com.example.demo.domain.RoundSession;
 import lombok.Getter;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class RoundThread extends Thread {
 
-    private final Config config;
+    private final AppProperties appProperties;
     private final RoundService roundService;
     private Integer iteration = 0;
     private ThreadLocal<Integer> roundCounter = ThreadLocal.withInitial(() -> iteration);
@@ -31,44 +31,44 @@ public class RoundThread extends Thread {
     /**
      * Sessions for this thread
      */
-    private Set<Session> sessions = new HashSet<>();
+    private Set<RoundSession> sessions = new HashSet<>();
     @Getter
-    private ThreadLocal<Set<Session>> sessionsThreadLocal;
+    private ThreadLocal<Set<RoundSession>> sessionsThreadLocal;
 
     @Inject
-    RoundThread(RoundService roundService, Config config) {
+    RoundThread(RoundService roundService, AppProperties appProperties) {
         sessionsThreadLocal = ThreadLocal.withInitial(() -> sessions);
-        this.config = config;
+        this.appProperties = appProperties;
         this.roundService = roundService;
     }
 
     @Override
     public void run() {
         while (!Thread.interrupted()) {
-            int roundResult = random.nextInt(config.getMaxPossibleResults());
+            int roundResult = random.nextInt(appProperties.getMaxPossibleResults());
             System.out.println(Thread.currentThread().getName() + ". Random number " + roundResult);
-            if (roundResult == config.getWinResult()) {
+            if (roundResult == appProperties.getWinResult()) {
                 sessionsThreadLocal.get().forEach(session -> {
-                    System.out.println("Win " + Thread.currentThread().getName() + " Session " + session.getId() + ", increased balance to " + session.getBalance());
-                    session.setBalance(session.getBalance() + config.getIncWinBalance());
+                    System.out.println("Win " + Thread.currentThread().getName() + " RoundSession " + session.getSessionId() + ", increased balance to " + session.getBalance());
+                    session.setBalance(session.getBalance() + appProperties.getIncWinBalance());
                     roundService.saveSession(session);
                 });
             }
-            System.out.println("Session count " + sessionsThreadLocal.get().size());
+            System.out.println("RoundSession count " + sessionsThreadLocal.get().size());
             // double loop for sessions to send a message to each session in the current thread
             sessionsThreadLocal.get().forEach(session -> {
-                RoundMessage message = createRoundMessage(roundResult, session.getId(), roundCounter.get());
-                sendMessage(session.getEmitter(), message);
+                RoundMessage message = createRoundMessage(roundResult, session.getSessionId(), roundCounter.get());
+                sendMessage(roundService.getSseEmitterBySessionId(session.getSessionId()), message);
                 sessionsThreadLocal.get()
                         .stream()
-                        .filter(s -> !s.getId().equals(session.getId()))
+                        .filter(s -> !s.getSessionId().equals(session.getSessionId()))
                         .forEach(session1 -> {
-                            RoundMessage innerMessage = createRoundMessage(roundResult, session.getId(), roundCounter.get());
-                            sendMessage(session1.getEmitter(), innerMessage);
+                            RoundMessage innerMessage = createRoundMessage(roundResult, session.getSessionId(), roundCounter.get());
+                            sendMessage(roundService.getSseEmitterBySessionId(session1.getSessionId()), innerMessage);
                         });
             });
             try {
-                TimeUnit.SECONDS.sleep(config.getNextRoundSeconds());
+                TimeUnit.SECONDS.sleep(appProperties.getNextRoundSeconds());
             } catch (InterruptedException e) {
                 System.out.println("Round #" + Thread.currentThread().getName() + ". Next iteration " + roundCounter);
             }
@@ -82,16 +82,16 @@ public class RoundThread extends Thread {
      * @param session
      * @return
      */
-    public SseEmitter addSession(Session session) {
-        Optional<Session> sessionOpt = sessionsThreadLocal.get()
+    public SseEmitter addSession(RoundSession session) {
+        Optional<RoundSession> sessionOpt = sessionsThreadLocal.get()
                 .stream()
-                .filter(s -> s.getId().equals(session.getId()))
+                .filter(s -> s.getSessionId().equals(session.getSessionId()))
                 .findFirst();
         if (sessionOpt.isPresent()) {
-            return sessionOpt.get().getEmitter();
+            return roundService.getSseEmitterBySessionId(sessionOpt.get().getSessionId());
         }
         sessionsThreadLocal.get().add(session);
-        return session.getEmitter();
+        return roundService.getSseEmitterBySessionId(session.getSessionId());
     }
 
     /**
@@ -117,7 +117,7 @@ public class RoundThread extends Thread {
      * @param roundIteration
      * @return
      */
-    private RoundMessage createRoundMessage(int roundResult, Long sessionId, int roundIteration) {
+    private RoundMessage createRoundMessage(int roundResult, String sessionId, int roundIteration) {
         return roundService.createMessage(Thread.currentThread().getName(), sessionId, roundResult, roundIteration);
     }
 }

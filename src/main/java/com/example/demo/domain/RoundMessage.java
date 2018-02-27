@@ -25,10 +25,10 @@ public class RoundMessage {
     private int roundResult;
     @Column(name = "iteration")
     private int iteration;
-    @ManyToOne(targetEntity = Session.class, fetch = FetchType.EAGER)
-    private Session session;
+    @Embedded
+    private RoundSession session;
 
-    public RoundMessage(String roundName, int roundResult, Session session, int roundIteration) {
+    public RoundMessage(String roundName, int roundResult, RoundSession session, int roundIteration) {
         this.roundName = roundName;
         this.roundResult = roundResult;
         this.session = session;

@@ -1,15 +1,19 @@
 package com.example.demo.service;
 
-import com.example.demo.config.Config;
+import com.example.demo.config.AppProperties;
 import com.example.demo.dao.MessageRepository;
-import com.example.demo.dao.SessionRepository;
 import com.example.demo.domain.RoundMessage;
-import com.example.demo.domain.Session;
+import com.example.demo.domain.RoundSession;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
+import org.springframework.session.Session;
+import org.springframework.session.SessionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import javax.inject.Inject;
+import javax.annotation.PostConstruct;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -23,23 +27,36 @@ public class RoundService {
      */
     private RoundThread currentRound;
 
-    private final SessionRepository sessionRepository;
+    private Map<String, SseEmitter> sessionIdSseEmitter = new HashMap<>();
+    private SessionRepository sessionRepository;
     private final MessageRepository messageRepository;
+    private final AppProperties appProperties;
+    private final AutowireCapableBeanFactory factory;
 
-    @Inject
+    @Autowired
     public RoundService(SessionRepository sessionRepository, MessageRepository messageRepository,
-                        Config config, AutowireCapableBeanFactory factory) {
+                        AppProperties appProperties, AutowireCapableBeanFactory factory) {
         this.sessionRepository = sessionRepository;
         this.messageRepository = messageRepository;
+        this.appProperties = appProperties;
+        this.factory = factory;
+    }
+
+    @PostConstruct
+    private void init() {
+        startRoundThread();
+    }
+
+    private void startRoundThread() {
         // Initialize rounds-threads
         new Thread(() -> {
             int i = 0;
-            while (i < config.getMaxRounds() || config.getMaxRounds() == 0) {
+            while (i < appProperties.getMaxRounds() || appProperties.getMaxRounds() == 0) {
                 currentRound = factory.createBean(RoundThread.class);
                 currentRound.setName("Round-" + i);
                 currentRound.start();
                 try {
-                    TimeUnit.SECONDS.sleep(config.getIntervalBetweenRounds());
+                    TimeUnit.SECONDS.sleep(appProperties.getIntervalBetweenRounds());
                 } catch (InterruptedException e) {
                     System.out.println("New round");
                 }
@@ -49,22 +66,33 @@ public class RoundService {
     }
 
     public SseEmitter joinWithBalance(int balance) {
-        Session session = new Session(balance - 1, new SseEmitter());
-        session = sessionRepository.save(session);
-        return currentRound.addSession(session);
+        Session session = sessionRepository.createSession();
+        sessionIdSseEmitter.put(session.getId(), new SseEmitter());
+
+        RoundSession roundSession = new RoundSession(session.getId(), balance - 1);
+        session.setAttribute(session.getId(), roundSession);
+        sessionRepository.save(session);
+        return currentRound.addSession(roundSession);
     }
 
-    public Session saveSession(Session session) {
-        return sessionRepository.save(session);
+    public SseEmitter getSseEmitterBySessionId(String sessionId) {
+        return sessionIdSseEmitter.get(sessionId);
     }
 
-    public RoundMessage saveMessage(RoundMessage message) {
-        return messageRepository.save(message);
+    public RoundSession saveSession(RoundSession roundSession) {
+        Session session = sessionRepository.getSession(roundSession.getSessionId());
+        session.setAttribute(roundSession.getSessionId(), roundSession);
+        sessionRepository.save(session);
+        return roundSession;
     }
 
-    public RoundMessage createMessage(String roundName, Long sessionId, int roundResult, int roundIteration) {
-        Session one = sessionRepository.findOne(sessionId);
-        RoundMessage message = new RoundMessage(roundName, roundResult, one, roundIteration);
+    public RoundMessage createMessage(String roundName, String sessionId, int roundResult, int roundIteration) {
+        Session session = sessionRepository.getSession(sessionId);
+        Object obj = session.getAttribute(sessionId);
+        RoundSession roundSession = new RoundSession((RoundSession)obj);
+        System.out.println(roundSession.getClass().getSimpleName());
+        System.out.println(roundSession);
+        RoundMessage message = new RoundMessage(roundName, roundResult, null, roundIteration);
         return messageRepository.save(message);
     }
 }

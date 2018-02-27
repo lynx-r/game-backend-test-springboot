@@ -1,12 +1,12 @@
 package com.example.demo.controller;
 
 import com.example.demo.service.RoundService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 
 /**
@@ -17,7 +17,7 @@ public class JoinController {
 
     private RoundService roundService;
 
-    @Inject
+    @Autowired
     public JoinController(RoundService roundService) {
         this.roundService = roundService;
     }

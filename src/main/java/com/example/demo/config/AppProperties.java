@@ -2,14 +2,14 @@ package com.example.demo.config;
 
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 
 /**
  * Created by Aleksey Popryadukhin on 25/02/2018.
  */
 @Data
-@Configuration
-public class Config {
+@Component
+public class AppProperties {
 
     @Value(value = "${interval_between_rounds}")
     private Integer intervalBetweenRounds;
