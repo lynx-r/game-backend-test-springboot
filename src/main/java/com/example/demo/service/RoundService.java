@@ -67,12 +67,13 @@ public class RoundService {
 
     public SseEmitter joinWithBalance(int balance) {
         Session session = sessionRepository.createSession();
+        // save sessionId and corresponding SseEmitter
         sessionIdSseEmitter.put(session.getId(), new SseEmitter());
 
         RoundSession roundSession = new RoundSession(session.getId(), balance - 1);
         session.setAttribute(session.getId(), roundSession);
         sessionRepository.save(session);
-        return currentRound.addSession(roundSession);
+        return currentRound.addSessionAndGetSseEmitter(roundSession);
     }
 
     public SseEmitter getSseEmitterBySessionId(String sessionId) {

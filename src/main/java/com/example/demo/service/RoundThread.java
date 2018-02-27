@@ -58,13 +58,13 @@ public class RoundThread extends Thread {
             // double loop for sessions to send a message to each session in the current thread
             sessionsThreadLocal.get().forEach(session -> {
                 RoundMessage message = createRoundMessage(roundResult, session.getSessionId(), roundCounter.get());
-                sendMessage(roundService.getSseEmitterBySessionId(session.getSessionId()), message);
+                sendMessage(session, message);
                 sessionsThreadLocal.get()
                         .stream()
                         .filter(s -> !s.getSessionId().equals(session.getSessionId()))
                         .forEach(session1 -> {
                             RoundMessage innerMessage = createRoundMessage(roundResult, session.getSessionId(), roundCounter.get());
-                            sendMessage(roundService.getSseEmitterBySessionId(session1.getSessionId()), innerMessage);
+                            sendMessage(session1, innerMessage);
                         });
             });
             try {
@@ -80,9 +80,9 @@ public class RoundThread extends Thread {
      * Add session to the local thread and create an emitter which will send messages to clients
      *
      * @param session
-     * @return
+     * @return SseEmitter
      */
-    public SseEmitter addSession(RoundSession session) {
+    public SseEmitter addSessionAndGetSseEmitter(RoundSession session) {
         Optional<RoundSession> sessionOpt = sessionsThreadLocal.get()
                 .stream()
                 .filter(s -> s.getSessionId().equals(session.getSessionId()))
@@ -96,11 +96,11 @@ public class RoundThread extends Thread {
 
     /**
      * Send a message over SSE
-     *
-     * @param emitter
+     *  @param roundSession
      * @param message
      */
-    private void sendMessage(SseEmitter emitter, RoundMessage message) {
+    private void sendMessage(RoundSession roundSession, RoundMessage message) {
+        SseEmitter emitter = roundService.getSseEmitterBySessionId(roundSession.getSessionId());
         try {
             emitter.send(message, MediaType.APPLICATION_JSON);
         } catch (IOException e) {
