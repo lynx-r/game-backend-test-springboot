@@ -88,11 +88,8 @@ public class RoundService {
 
     public RoundMessage createMessage(String roundName, String sessionId, int roundResult, int roundIteration) {
         Session session = sessionRepository.getSession(sessionId);
-        Object obj = session.getAttribute(sessionId);
-        RoundSession roundSession = new RoundSession((RoundSession)obj);
-        System.out.println(roundSession.getClass().getSimpleName());
-        System.out.println(roundSession);
-        RoundMessage message = new RoundMessage(roundName, roundResult, null, roundIteration);
+        RoundSession roundSession = session.getAttribute(sessionId);
+        RoundMessage message = new RoundMessage(roundName, roundResult, roundSession, roundIteration);
         return messageRepository.save(message);
     }
 }
