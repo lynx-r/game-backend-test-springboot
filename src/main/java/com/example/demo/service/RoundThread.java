@@ -11,7 +11,6 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -83,13 +82,6 @@ public class RoundThread extends Thread {
      * @return SseEmitter
      */
     public SseEmitter addSessionAndGetSseEmitter(RoundSession session) {
-        Optional<RoundSession> sessionOpt = sessionsThreadLocal.get()
-                .stream()
-                .filter(s -> s.getSessionId().equals(session.getSessionId()))
-                .findFirst();
-        if (sessionOpt.isPresent()) {
-            return roundService.getSseEmitterBySessionId(sessionOpt.get().getSessionId());
-        }
         sessionsThreadLocal.get().add(session);
         return roundService.getSseEmitterBySessionId(session.getSessionId());
     }
